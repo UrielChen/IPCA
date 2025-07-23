@@ -53,7 +53,7 @@ def tanptfnext(X, Xnext, targetvol=None):
     iota = np.ones((N, 1))  # [N×1], vector of ones
     
     # Compute sample covariance matrix of historical returns
-    S = np.cov(X, rowvar=False)  # [N×N], sample covariance matrix
+    S = np.cov(X, rowvar=False).reshape((N,N))  # [N×N], sample covariance matrix
     
     # Compute sample mean vector of historical returns
     mu = np.mean(X, axis=0).reshape(-1, 1)  # [N×1], mean return for each asset

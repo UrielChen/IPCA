@@ -45,7 +45,7 @@ def tanptfnext(past_factors, current_factors):
 dataname = 'Results_GB_IPCADATA_FNW36_RNKDMN_CON_K1'
 
 # Flag for out-of-sample (True) or in-sample (False) estimation; boolean scalar
-oosflag = False
+oosflag = True
 
 # Select return type: 'R' (assets), 'Q' (Q-portfolios), 'X' (managed portfolios); string scalar
 QXorR = 'R'
@@ -54,7 +54,7 @@ QXorR = 'R'
 annualize = False
 
 # Choose factor model: 'FF', 'SY', 'HXZ', 'BS'; string scalar
-ObsChoice = 'HXZ'
+ObsChoice = 'FF'
 
 # 2. Load IPCA results (returns & mask)
 # Load data from .npz file; assumes same structure as .mat
@@ -324,6 +324,7 @@ if ObsChoice == 'FF':
     # Set OOS string for filename
     if oosflag:
         oosstr = 'OOS'
+        suffix = '_rec_60_60'
     else:
         oosstr = ''
     # Suffix (empty for default)
