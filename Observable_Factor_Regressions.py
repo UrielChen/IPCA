@@ -45,13 +45,13 @@ def tanptfnext(past_factors, current_factors):
 dataname = 'Results_GB_IPCADATA_FNW36_RNKDMN_CON_K1'
 
 # Flag for out-of-sample (True) or in-sample (False) estimation; boolean scalar
-oosflag = True
+oosflag = False # oos is not available at the moment
 
 # Select return type: 'R' (assets), 'Q' (Q-portfolios), 'X' (managed portfolios); string scalar
-QXorR = 'R'
+QXorR = 'R' # 'Q' & 'X' are not available at the moment: not in data
 
 # Flag to annualize factor returns (False for monthly); boolean scalar
-annualize = False
+annualize = False # annualize is not available at the moment: no _ANNRET.npz file
 
 # Choose factor model: 'FF', 'SY', 'HXZ', 'BS'; string scalar
 ObsChoice = 'FF'
@@ -242,7 +242,7 @@ if ObsChoice == 'FF':
             # Extract valid returns; [T_valid×1]
             y = RET[n, valid_t].reshape(-1, 1)
             # Extract valid factors
-            f1 = FF1[valid_t].reshape(-1, 1)  # [T_valid×1]
+            f1 = FF1[valid_t].reshape(-1, 1)   # [T_valid×1]
             f3 = FF3[valid_t]                  # [T_valid×3]
             f4 = FF4[valid_t]                  # [T_valid×4]
             f5 = FF5[valid_t]                  # [T_valid×5]
@@ -330,7 +330,7 @@ if ObsChoice == 'FF':
     # Suffix (empty for default)
     suffix = ''
     # Save results to .npz
-    np.savez(f'../IPCA_KELLY/Results_ObsFactReg{QXorR}{oosstr}_{dataname}{suffix}.npz',
+    np.savez(f'../IPCA_KELLY/Results_ObsFactReg_FF_{QXorR}{oosstr}_{dataname}{suffix}.npz',
              FITS_FF1=FITS_FF1, FITS_FF3=FITS_FF3, FITS_FF4=FITS_FF4,
              FITS_FF5=FITS_FF5, FITS_FF6=FITS_FF6,
              FITS_cond_FF1=FITS_cond_FF1, FITS_cond_FF3=FITS_cond_FF3,
