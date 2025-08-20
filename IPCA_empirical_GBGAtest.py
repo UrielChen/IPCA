@@ -56,7 +56,7 @@ with np.load(datafile, allow_pickle=True) as D:
     xret   = D['xret']     # (N, T): asset returns
     LOC    = D['LOC']      # (N, T): boolean mask
     Nts    = D['Nts']      # (T,): cross-sectional count per time
-    date   = D['date']     # (T,): timestamps
+    date   = D['dates']     # (T,): timestamps
     # charnames, if present, can be loaded as D['charnames']
 
 # Get dimensions for reference
