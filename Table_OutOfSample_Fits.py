@@ -38,8 +38,8 @@ dirname = '../IPCA_KELLY'                                             # director
 # Base name for IPCA OOS results, K will be appended
 name1  = 'Results_GB_outofsample_IPCADATA_FNW36_RNKDMN_CON_K'       # string
 # Filenames for FF observable OOS results (consistent across K)
-# nameFFR = 'Results_ObsFactRegROOS_Results_GB_IPCADATA_FNW36_RNKDMN_CON_K1_rec_60_60'  # returns
-# nameFFX = 'Results_ObsFactRegXOOS_Results_GB_IPCADATA_FNW36_RNKDMN_CON_K1_rec_60_60'  # chars
+nameFFR = 'Results_ObsFactRegROOS_Results_GB_IPCADATA_FNW36_RNKDMN_CON_K1_rec_60_60'  # returns
+nameFFX = 'Results_ObsFactRegXOOS_Results_GB_IPCADATA_FNW36_RNKDMN_CON_K1_rec_60_60'  # chars
 
 Krange = range(1, 7)                                               # K = 1…6
 
@@ -57,8 +57,8 @@ for K in Krange:
         continue                                                   # skip if missing
 
     # Load Fama–French observable OOS results (returns and chars)
-    # data_ffr = np.load(os.path.join(dirname, nameFFR + '.npz'), allow_pickle=True)  # FF returns
-    # data_ffx = np.load(os.path.join(dirname, nameFFX + '.npz'), allow_pickle=True)  # FF chars
+    data_ffr = np.load(os.path.join(dirname, nameFFR + '.npz'), allow_pickle=True)  # FF returns
+    data_ffx = np.load(os.path.join(dirname, nameFFX + '.npz'), allow_pickle=True)  # FF chars
 
     # Extract relevant arrays from IPCA results
     xret              = data_ipca['xret']                          # [N×T] asset returns
@@ -72,9 +72,13 @@ for K in Krange:
     OOSRealTan        = data_ipca['OOSRealTan']                    # [T,]
 
     # Extract FF arrays for returns and factors
-    # FITS_FF        = data_ffr[f'FITS_FF{K}']                       # [N×T]
-    # FITS_cond_FF   = data_ffr[f'FITS_cond_FF{K}']                  # [N×T]
-    # FITS_Factors   = data_ffr['FITS_Factors']                      # [T×K]
+    if K != 2:
+        RFITS_FF        = data_ffr[f'FITS_FF{K}']                   # [N×T]
+        RFITS_cond_FF   = data_ffr[f'FITS_cond_FF{K}']              # [N×T]
+        RFITS_Factors   = data_ffr['FITS_Factors']                  # [T×K]
+        XFITS_FF        = data_ffx[f'FITS_FF{K}']                   # [N×T]
+        XFITS_cond_FF   = data_ffx[f'FITS_cond_FF{K}']              # [N×T]
+        XFITS_Factors   = data_ffx['FITS_Factors']                  # [T×K]
 
     # --- Create mask of OOS evaluation dates/assets ---
     BIGLOC = LOC.astype(bool) # & FITS_FF.astype(bool)                            # [N×T] intersection mask
@@ -89,35 +93,40 @@ for K in Krange:
     # --- Compute IPCA OOS R² metrics ---
     # Total R² on returns
     report[0, K-1] = 1 - mySOS(xret.ravel()[mask_vec] - OOSRFITS_GB.ravel()[mask_vec]) \
-                         / mySOS(xret.ravel()[mask_vec])
+                        / mySOS(xret.ravel()[mask_vec])
     # Predicted R² on returns
     report[1, K-1] = 1 - mySOS(xret.ravel()[mask_vec] - OOSRFITS_pred_GB.ravel()[mask_vec]) \
-                         / mySOS(xret.ravel()[mask_vec])
+                        / mySOS(xret.ravel()[mask_vec])
     # Total R² on characteristics
     report[2, K-1] = 1 - mySOS((X[:, si-1:] - OOSXFITS_GB[:, si-1:]).ravel()) \
-                         / mySOS(X[:, si-1:].ravel())
+                        / mySOS(X[:, si-1:].ravel())
     # Predicted R² on characteristics
     report[3, K-1] = 1 - mySOS((X[:, si-1:] - OOSXFITS_pred_GB[:, si-1:]).ravel()) \
-                         / mySOS(X[:, si-1:].ravel())
+                        / mySOS(X[:, si-1:].ravel())
 
     # --- Compute FF OOS R² metrics for returns ---
-    # report[4, K-1] = 1 - mySOS(xret.ravel()[mask_vec] - FITS_FF.ravel()[mask_vec]) \
-    #                      / mySOS(xret.ravel()[mask_vec])
-    # report[5, K-1] = 1 - mySOS(xret.ravel()[mask_vec] - FITS_cond_FF.ravel()[mask_vec]) \
-    #                      / mySOS(xret.ravel()[mask_vec])
+    if K != 2:
+        report[4, K-1] = 1 - mySOS(xret.ravel()[mask_vec] - RFITS_FF.ravel()[mask_vec]) \
+                            / mySOS(xret.ravel()[mask_vec])
+        report[5, K-1] = 1 - mySOS(xret.ravel()[mask_vec] - RFITS_cond_FF.ravel()[mask_vec]) \
+                            / mySOS(xret.ravel()[mask_vec])
+        report[6, K-1] = 1 - mySOS(X[:, si-1:].ravel() - XFITS_FF[:, si-1:].ravel()) \
+                            / mySOS(X[:, si-1:].ravel())
+        report[7, K-1] = 1 - mySOS(X[:, si-1:].ravel() - XFITS_cond_FF[:, si-1:].ravel()) \
+                            / mySOS(X[:, si-1:].ravel())
 
     # --- Compute Sharpe ratios (annualized) ---
     # Univariate portfolio on last IPCA factor
     tmp_ipca = OOSRealFact[-1, si-1:]                                # [T_si,]
-    report[4, K-1]  = sqrt(12) * np.nanmean(tmp_ipca) / np.nanstd(tmp_ipca)
+    report[8, K-1]  = sqrt(12) * np.nanmean(tmp_ipca) / np.nanstd(tmp_ipca, ddof=1)
     # Tangen2cy portfolio (IPCA)
-    report[5, K-1]  = sqrt(12) * np.nanmean(OOSRealTan[si-1:]) / np.nanstd(OOSRealTan[si-1:])
+    report[9, K-1]  = sqrt(12) * np.nanmean(OOSRealTan[si-1:]) / np.nanstd(OOSRealTan[si-1:], ddof=1)
     # Univariate portfolio on Kth FF factor
-    # tmp_ff = FITS_Factors[si:, K-1]                                # [T_si,]
-    # report[10, K-1] = sqrt(12) * np.nanmean(tmp_ff) / np.nanstd(tmp_ff)
+    tmp_ff = RFITS_Factors[si-1:, K-1]                                # [T_si,]
+    report[10, K-1] = sqrt(12) * np.nanmean(tmp_ff) / np.nanstd(tmp_ff, ddof=1)
     # # Tangency portfolio on all FF factors
-    # tp_ff = tanptf(FITS_Factors[:, :K].T)                          # [T,]
-    # report[11, K-1] = sqrt(12) * np.nanmean(tp_ff[si:]) / np.nanstd(tp_ff[si:])
+    tp_ff = tanptf(RFITS_Factors[:, :K])                          # [T, N]
+    report[11, K-1] = sqrt(12) * np.nanmean(tp_ff[si-1:]) / np.nanstd(tp_ff[si-1:], ddof=1)
 
 # %% 4. Prepare row labels for printing
 reportrows = [
@@ -125,13 +134,14 @@ reportrows = [
     'R2_pred_IPCA',      # 2
     'XR2_total_IPCA',    # 3
     'XR2_pred_IPCA',     # 4
-    # 'R2_total_FF',       # 5
-    # 'R2_pred_FF',        # 6
-    # rows 7-8 for chars/FF omitted
+    'R2_total_FF',       # 5
+    'R2_pred_FF',        # 6
+    'XR2_total_FF',      # 7
+    'XR2_pred_FF',       # 8
     'Sharpe_univar_IPCA',# 9
     'Sharpe_tang_IPCA',  #10
-    # 'Sharpe_univar_FF',  #11
-    # 'Sharpe_tang_FF'     #12
+    'Sharpe_univar_FF',  #11
+    'Sharpe_tang_FF'     #12
 ]
 
 # %% 5. Print summary table for LaTeX/paper
@@ -142,8 +152,8 @@ for idx, label in enumerate(reportrows):
     for K in Krange:
         v = report[idx, K-1]
         # R² rows as percent, Sharpe rows as decimal
-        if idx < 4:
-            vals.append(f"{100*v:6.2f}%")
+        if idx < 8:
+            vals.append(f"{100*v:6.3f}%")
         else:
             vals.append(f"{v:6.3f}")
     # Print row
@@ -162,8 +172,8 @@ for idx, label in enumerate(reportrows):
     row = label.ljust(20)
     for K in Krange:
         v = report[idx, K-1]
-        if idx < 4:
-            row += f"{100*v:10.2f}%"
+        if idx < 8:
+            row += f"{100*v:10.3f}%"
         else:
             row += f"{v:10.3f}"
     print(row)
