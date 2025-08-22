@@ -43,6 +43,7 @@ def tanptf(X):
     
     # Compute the sample covariance matrix of returns
     S = np.cov(X, rowvar=False)  # [N×N], sample covariance matrix
+    S = np.atleast_2d(S)
     
     # Compute the sample mean return vector
     mu = np.mean(X, axis=0).reshape(-1, 1)  # [N×1], mean return for each asset
