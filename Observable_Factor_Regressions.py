@@ -29,13 +29,7 @@ from sklearn.linear_model import LinearRegression
 import datetime
 import os
 from mySOS import mySOS
-
-# Placeholder for tanptfnext (assumed to compute tangency portfolio returns)
-def tanptfnext(past_factors, current_factors):
-    # Placeholder: Assumes inputs are past_factors [t×k], current_factors [1×k]
-    # Should return scalar return for tangency portfolio
-    print("Warning: tanptfnext not implemented; returning 0")
-    return 0  # Replace with actual implementation
+from tanptfnext import tanptfnext
 
 # 1. User settings
 # Clear workspace (Python doesn't need this, but for clarity)
@@ -199,46 +193,56 @@ if ObsChoice == 'FF':
                 if np.sum(~np.isnan(y)) < 60:
                     continue
                 else:
+                    y_loc = ~np.isnan(y).ravel()
+                    y = y[y_loc, :]
+                    f1_loc = f1[y_loc, :]
+                    f3_loc = f3[y_loc, :]
+                    f4_loc = f4[y_loc, :]
+                    f5_loc = f5[y_loc, :]
+                    f6_loc = f6[y_loc, :]
                     # Estimate betas using OLS (no intercept)
-                    model1 = LinearRegression(fit_intercept=False).fit(f1, y)
+                    model1 = LinearRegression(fit_intercept=False).fit(f1_loc, y)
                     b1 = model1.coef_  # [1×1]
-                    model3 = LinearRegression(fit_intercept=False).fit(f3, y)
+                    model3 = LinearRegression(fit_intercept=False).fit(f3_loc, y)
                     b3 = model3.coef_  # [3×1]
-                    model4 = LinearRegression(fit_intercept=False).fit(f4, y)
+                    model4 = LinearRegression(fit_intercept=False).fit(f4_loc, y)
                     b4 = model4.coef_  # [4×1]
-                    model5 = LinearRegression(fit_intercept=False).fit(f5, y)
+                    model5 = LinearRegression(fit_intercept=False).fit(f5_loc, y)
                     b5 = model5.coef_  # [5×1]
-                    model6 = LinearRegression(fit_intercept=False).fit(f6, y)
+                    model6 = LinearRegression(fit_intercept=False).fit(f6_loc, y)
                     b6 = model6.coef_  # [6×1]
 
                     # Realized fits at time t
-                    FITS_FF1[n, t] = FF1[t] @ b1  # scalar
-                    FITS_FF3[n, t] = FF3[t] @ b3  # scalar
-                    FITS_FF4[n, t] = FF4[t] @ b4  # scalar
-                    FITS_FF5[n, t] = FF5[t] @ b5  # scalar
-                    FITS_FF6[n, t] = FF6[t] @ b6  # scalar
+                    FITS_FF1[n, t] = FF1[t] @ b1.ravel()  # scalar
+                    FITS_FF3[n, t] = FF3[t] @ b3.ravel()  # scalar
+                    FITS_FF4[n, t] = FF4[t] @ b4.ravel()  # scalar
+                    FITS_FF5[n, t] = FF5[t] @ b5.ravel()  # scalar
+                    FITS_FF6[n, t] = FF6[t] @ b6.ravel()  # scalar
 
                     # Predictive fits using factor means
-                    FITS_cond_FF1[n, t] = np.mean(f1, axis=0) @ b1  # scalar
-                    FITS_cond_FF3[n, t] = np.mean(f3, axis=0) @ b3  # scalar
-                    FITS_cond_FF4[n, t] = np.mean(f4, axis=0) @ b4  # scalar
-                    FITS_cond_FF5[n, t] = np.mean(f5, axis=0) @ b5  # scalar
-                    FITS_cond_FF6[n, t] = np.mean(f6, axis=0) @ b6  # scalar
+                    FITS_cond_FF1[n, t] = np.mean(f1, axis=0) @ b1.ravel()  # scalar
+                    FITS_cond_FF3[n, t] = np.mean(f3, axis=0) @ b3.ravel()  # scalar
+                    FITS_cond_FF4[n, t] = np.mean(f4, axis=0) @ b4.ravel()  # scalar
+                    FITS_cond_FF5[n, t] = np.mean(f5, axis=0) @ b5.ravel()  # scalar
+                    FITS_cond_FF6[n, t] = np.mean(f6, axis=0) @ b6.ravel()  # scalar
 
                     # OOS tangency returns (using FF6 as base, slicing columns)
-                    FITS_OOSTan_FF1[t] = tanptfnext(f6[:, :1], FF6[t, :1])  # scalar
-                    FITS_OOSTan_FF2[t] = tanptfnext(f6[:, :2], FF6[t, :2])  # scalar
-                    FITS_OOSTan_FF3[t] = tanptfnext(f6[:, :3], FF6[t, :3])  # scalar
-                    FITS_OOSTan_FF4[t] = tanptfnext(f6[:, :4], FF6[t, :4])  # scalar
-                    FITS_OOSTan_FF5[t] = tanptfnext(f6[:, :5], FF6[t, :5])  # scalar
-                    FITS_OOSTan_FF6[t] = tanptfnext(f6[:, :6], FF6[t, :6])  # scalar
+                    FITS_OOSTan_FF1[t], _ = tanptfnext(f6[:, :1], FF6[t, :1].reshape(1, -1))  # scalar
+                    FITS_OOSTan_FF2[t], _ = tanptfnext(f6[:, :2], FF6[t, :2].reshape(1, -1))  # scalar
+                    FITS_OOSTan_FF3[t], _ = tanptfnext(f6[:, :3], FF6[t, :3].reshape(1, -1))  # scalar
+                    FITS_OOSTan_FF4[t], _ = tanptfnext(f6[:, :4], FF6[t, :4].reshape(1, -1))  # scalar
+                    FITS_OOSTan_FF5[t], _ = tanptfnext(f6[:, :5], FF6[t, :5].reshape(1, -1))  # scalar
+                    FITS_OOSTan_FF6[t], _ = tanptfnext(f6[:, :6], FF6[t, :6].reshape(1, -1))  # scalar
         else:
             # Full-sample estimation
             # Skip if insufficient data and Rlogic is True
             if Rlogic and np.sum(LOC[n, :]) < 12:
                 continue
             # Select valid time periods using LOC for asset n
-            valid_t = LOC[n, :]  # [T] boolean mask
+            if Rlogic:
+                valid_t = LOC[n, :]  # [T] boolean mask
+            else:
+                valid_t = np.full(LOC[n, :].shape, True)
             # Extract valid returns; [T_valid×1]
             y = RET[n, valid_t].reshape(-1, 1)
             # Extract valid factors
@@ -263,18 +267,18 @@ if ObsChoice == 'FF':
             b6 = model6.coef_  # [6×1]
 
             # Realized fits for valid time periods
-            FITS_FF1[n, valid_t] = (FF1[valid_t] @ b1.T).flatten()  # [T_valid]
-            FITS_FF3[n, valid_t] = (FF3[valid_t] @ b3.T).flatten()  # [T_valid]
-            FITS_FF4[n, valid_t] = (FF4[valid_t] @ b4.T).flatten()  # [T_valid]
-            FITS_FF5[n, valid_t] = (FF5[valid_t] @ b5.T).flatten()  # [T_valid]
-            FITS_FF6[n, valid_t] = (FF6[valid_t] @ b6.T).flatten()  # [T_valid]
+            FITS_FF1[n, :] = (FF1 @ b1.T).flatten()
+            FITS_FF3[n, :] = (FF3 @ b3.T).flatten()
+            FITS_FF4[n, :] = (FF4 @ b4.T).flatten()
+            FITS_FF5[n, :] = (FF5 @ b5.T).flatten()
+            FITS_FF6[n, :] = (FF6 @ b6.T).flatten()
 
             # Predictive fits using factor means
-            FITS_cond_FF1[n, valid_t] = (FF1_mean[valid_t] @ b1.T).flatten()  # [T_valid]
-            FITS_cond_FF3[n, valid_t] = (FF3_mean[valid_t] @ b3.T).flatten()  # [T_valid]
-            FITS_cond_FF4[n, valid_t] = (FF4_mean[valid_t] @ b4.T).flatten()  # [T_valid]
-            FITS_cond_FF5[n, valid_t] = (FF5_mean[valid_t] @ b5.T).flatten()  # [T_valid]
-            FITS_cond_FF6[n, valid_t] = (FF6_mean[valid_t] @ b6.T).flatten()  # [T_valid]
+            FITS_cond_FF1[n, :] = (FF1_mean @ b1.T).flatten()
+            FITS_cond_FF3[n, :] = (FF3_mean @ b3.T).flatten()
+            FITS_cond_FF4[n, :] = (FF4_mean @ b4.T).flatten()
+            FITS_cond_FF5[n, :] = (FF5_mean @ b5.T).flatten()
+            FITS_cond_FF6[n, :] = (FF6_mean @ b6.T).flatten()
 
         # Print progress every 100 assets
         if n % 100 == 0:
@@ -299,18 +303,18 @@ if ObsChoice == 'FF':
     totSOS = mySOS(xret)  # scalar
 
     # Asset-level Total R²
-    R2_tot_FF1 = 1 - mySOS(xret[LOC] - FITS_FF1[LOC]) / totSOS  # scalar
-    R2_tot_FF3 = 1 - mySOS(xret[LOC] - FITS_FF3[LOC]) / totSOS  # scalar
-    R2_tot_FF4 = 1 - mySOS(xret[LOC] - FITS_FF4[LOC]) / totSOS  # scalar
-    R2_tot_FF5 = 1 - mySOS(xret[LOC] - FITS_FF5[LOC]) / totSOS  # scalar
-    R2_tot_FF6 = 1 - mySOS(xret[LOC] - FITS_FF6[LOC]) / totSOS  # scalar
+    R2_tot_FF1 = 1 - mySOS(RET[FITS_FFLOC] - FITS_FF1[FITS_FFLOC]) / totSOS  # scalar
+    R2_tot_FF3 = 1 - mySOS(RET[FITS_FFLOC] - FITS_FF3[FITS_FFLOC]) / totSOS  # scalar
+    R2_tot_FF4 = 1 - mySOS(RET[FITS_FFLOC] - FITS_FF4[FITS_FFLOC]) / totSOS  # scalar
+    R2_tot_FF5 = 1 - mySOS(RET[FITS_FFLOC] - FITS_FF5[FITS_FFLOC]) / totSOS  # scalar
+    R2_tot_FF6 = 1 - mySOS(RET[FITS_FFLOC] - FITS_FF6[FITS_FFLOC]) / totSOS  # scalar
 
     # Asset-level Predictive R²
-    R2_pre_FF1 = 1 - mySOS(xret[LOC] - FITS_cond_FF1[LOC]) / totSOS  # scalar
-    R2_pre_FF3 = 1 - mySOS(xret[LOC] - FITS_cond_FF3[LOC]) / totSOS  # scalar
-    R2_pre_FF4 = 1 - mySOS(xret[LOC] - FITS_cond_FF4[LOC]) / totSOS  # scalar
-    R2_pre_FF5 = 1 - mySOS(xret[LOC] - FITS_cond_FF5[LOC]) / totSOS  # scalar
-    R2_pre_FF6 = 1 - mySOS(xret[LOC] - FITS_cond_FF6[LOC]) / totSOS  # scalar
+    R2_pre_FF1 = 1 - mySOS(RET[FITS_FFLOC] - FITS_cond_FF1[FITS_FFLOC]) / totSOS  # scalar
+    R2_pre_FF3 = 1 - mySOS(RET[FITS_FFLOC] - FITS_cond_FF3[FITS_FFLOC]) / totSOS  # scalar
+    R2_pre_FF4 = 1 - mySOS(RET[FITS_FFLOC] - FITS_cond_FF4[FITS_FFLOC]) / totSOS  # scalar
+    R2_pre_FF5 = 1 - mySOS(RET[FITS_FFLOC] - FITS_cond_FF5[FITS_FFLOC]) / totSOS  # scalar
+    R2_pre_FF6 = 1 - mySOS(RET[FITS_FFLOC] - FITS_cond_FF6[FITS_FFLOC]) / totSOS  # scalar
 
     # Display key R² results
     print('\nFF Models R² (Total | Pred):')
@@ -327,19 +331,19 @@ if ObsChoice == 'FF':
         suffix = '_rec_60_60'
     else:
         oosstr = ''
-    # Suffix (empty for default)
-    suffix = ''
+        # Suffix (empty for default)
+        suffix = ''
     # Save results to .npz
     np.savez(f'../IPCA_KELLY/Results_ObsFactReg{QXorR}{oosstr}_{dataname}{suffix}.npz',
-             FITS_FF1=FITS_FF1, FITS_FF3=FITS_FF3, FITS_FF4=FITS_FF4,
-             FITS_FF5=FITS_FF5, FITS_FF6=FITS_FF6,
-             FITS_cond_FF1=FITS_cond_FF1, FITS_cond_FF3=FITS_cond_FF3,
-             FITS_cond_FF4=FITS_cond_FF4, FITS_cond_FF5=FITS_cond_FF5,
-             FITS_cond_FF6=FITS_cond_FF6,
-             FITS_OOSTan_FF1=FITS_OOSTan_FF1, FITS_OOSTan_FF2=FITS_OOSTan_FF2,
-             FITS_OOSTan_FF3=FITS_OOSTan_FF3, FITS_OOSTan_FF4=FITS_OOSTan_FF4,
-             FITS_OOSTan_FF5=FITS_OOSTan_FF5, FITS_OOSTan_FF6=FITS_OOSTan_FF6,
-             FITS_Factors=FITS_Factors, FITS_FFLOC=FITS_FFLOC, date=date, RET=RET)
+            FITS_FF1=FITS_FF1, FITS_FF3=FITS_FF3, FITS_FF4=FITS_FF4,
+            FITS_FF5=FITS_FF5, FITS_FF6=FITS_FF6,
+            FITS_cond_FF1=FITS_cond_FF1, FITS_cond_FF3=FITS_cond_FF3,
+            FITS_cond_FF4=FITS_cond_FF4, FITS_cond_FF5=FITS_cond_FF5,
+            FITS_cond_FF6=FITS_cond_FF6,
+            FITS_OOSTan_FF1=FITS_OOSTan_FF1, FITS_OOSTan_FF2=FITS_OOSTan_FF2,
+            FITS_OOSTan_FF3=FITS_OOSTan_FF3, FITS_OOSTan_FF4=FITS_OOSTan_FF4,
+            FITS_OOSTan_FF5=FITS_OOSTan_FF5, FITS_OOSTan_FF6=FITS_OOSTan_FF6,
+            FITS_Factors=FITS_Factors, FITS_FFLOC=FITS_FFLOC, date=date, RET=RET)
 
 elif ObsChoice == 'SY':
     # 3.1 Load Stambaugh-Yuan data
@@ -425,25 +429,31 @@ elif ObsChoice == 'SY':
                 if np.sum(~np.isnan(y)) < 60:
                     continue
                 else:
+                    y_loc = ~np.isnan(y).ravel()
+                    y = y[y_loc, :]
+                    f_loc = f[y_loc, :]
                     # Estimate betas
-                    model = LinearRegression(fit_intercept=False).fit(f, y)
+                    model = LinearRegression(fit_intercept=False).fit(f_loc, y)
                     b = model.coef_  # [4×1]
 
                     # Realized fit at time t
-                    FITS_SY[n, t] = SY[t] @ b  # scalar
+                    FITS_SY[n, t] = SY[t] @ b.ravel()  # scalar
 
                     # Predictive fit
-                    FITS_cond_SY[n, t] = np.mean(f, axis=0) @ b  # scalar
+                    FITS_cond_SY[n, t] = np.mean(f, axis=0) @ b.ravel()  # scalar
 
                     # OOS tangency return
-                    FITS_OOSTan_SY[t] = tanptfnext(f[:, :1], SY[t, :1])  # scalar
+                    FITS_OOSTan_SY[t], _ = tanptfnext(f[:, :1], SY[t, :1].reshape(-1, 1))  # scalar
         else:
             # Full-sample estimation
             # Skip if insufficient data and Rlogic is True
             if Rlogic and np.sum(LOC[n, :]) < 12:
                 continue
             # Select valid time periods using LOC for asset n
-            valid_t = LOC[n, :]  # [T] boolean mask
+            if Rlogic:
+                valid_t = LOC[n, :]  # [T] boolean mask
+            else:
+                valid_t = np.full(LOC[n, :].shape, True)
             # Extract valid returns
             y = RET[n, valid_t].reshape(-1, 1)  # [T_valid×1]
             # Extract valid factors
@@ -456,9 +466,9 @@ elif ObsChoice == 'SY':
             b = model.coef_  # [1x4]
 
             # Realized fits for valid time periods
-            FITS_SY[n, valid_t] = (SY[valid_t] @ b.T).flatten()  # [T_valid]
+            FITS_SY[n, :] = (SY @ b.T).flatten()
             # Predictive fits
-            FITS_cond_SY[n, valid_t] = (SY_mean[valid_t] @ b.T).flatten()  # [T_valid]
+            FITS_cond_SY[n, :] = (SY_mean @ b.T).flatten()
 
         # Print progress
         if n % 100 == 0:
@@ -501,9 +511,9 @@ elif ObsChoice == 'SY':
     suffix = '' # adjust if OOS spec
     # Save to .npz
     np.savez(f'../IPCA_KELLY/Results_ObsFactReg_SY_{QXorR}{oosstr}_{dataname}{suffix}.npz',
-             FITS_SY=FITS_SY, FITS_cond_SY=FITS_cond_SY,
-             FITS_OOSTan_SY=FITS_OOSTan_SY, FITS_Factors=FITS_Factors,
-             FITS_SYLOC=FITS_SYLOC, date=date, RET=RET)
+            FITS_SY=FITS_SY, FITS_cond_SY=FITS_cond_SY,
+            FITS_OOSTan_SY=FITS_OOSTan_SY, FITS_Factors=FITS_Factors,
+            FITS_SYLOC=FITS_SYLOC, date=date, RET=RET)
 
 elif ObsChoice == 'HXZ':
     # 3.1 Load Hou-Xue-Zhang data
@@ -524,7 +534,7 @@ elif ObsChoice == 'HXZ':
     # 3.3 Build factor arrays
     # HXZ factors: Mkt_RF, ME, IA, ROE; [T×4]
     HXZ = np.column_stack((hxzdata['Mkt_RF'][locHXZ], hxzdata['ME'][locHXZ],
-                           hxzdata['IA'][locHXZ], hxzdata['ROE'][locHXZ]))
+                        hxzdata['IA'][locHXZ], hxzdata['ROE'][locHXZ]))
 
     # 3.4 Select RET matrix
     if QXorR == 'R':
@@ -570,11 +580,14 @@ elif ObsChoice == 'HXZ':
                 if np.sum(~np.isnan(y)) < 60:
                     continue
                 else:
-                    model = LinearRegression(fit_intercept=False).fit(f, y)
+                    y_loc = ~np.isnan(y).ravel()
+                    y = y[y_loc, :]
+                    f_loc = f[y_loc, :]
+                    model = LinearRegression(fit_intercept=False).fit(f_loc, y)
                     b = model.coef_
-                    FITS_HXZ[n, t] = HXZ[t] @ b
-                    FITS_cond_HXZ[n, t] = np.mean(f, axis=0) @ b
-                    FITS_OOSTan_HXZ[t] = tanptfnext(f[:, :1], HXZ[t, :1])
+                    FITS_HXZ[n, t] = HXZ[t] @ b.ravel()
+                    FITS_cond_HXZ[n, t] = np.mean(f, axis=0) @ b.ravel()
+                    FITS_OOSTan_HXZ[t], _ = tanptfnext(f[:, :1], HXZ[t, :1].reshape(-1, 1))
         else:
             # Full-sample estimation
             # Skip if insufficient data and Rlogic is True
@@ -595,9 +608,9 @@ elif ObsChoice == 'HXZ':
             b = model.coef_  # [1x4]
 
             # Realized fits for valid time periods
-            FITS_HXZ[n, valid_t] = (HXZ[valid_t] @ b.T).flatten()  # [T_valid]
+            FITS_HXZ[n, :] = (HXZ @ b.T).flatten()
             # Predictive fits
-            FITS_cond_HXZ[n, valid_t] = (HXZ_mean[valid_t] @ b.T).flatten()  # [T_valid]
+            FITS_cond_HXZ[n, :] = (HXZ_mean @ b.T).flatten()
 
         if n % 100 == 0:
             print(f'  processed asset {n} of {N}')
@@ -632,9 +645,9 @@ elif ObsChoice == 'HXZ':
         oosstr = ''
     suffix = '' # adjust if OOS spec
     np.savez(f'../IPCA_KELLY/Results_ObsFactReg_HXZ_{QXorR}{oosstr}_{dataname}{suffix}.npz',
-             FITS_HXZ=FITS_HXZ, FITS_cond_HXZ=FITS_cond_HXZ,
-             FITS_OOSTan_HXZ=FITS_OOSTan_HXZ, FITS_Factors=FITS_Factors,
-             FITS_HXZLOC=FITS_HXZLOC, date=date, RET=RET)
+            FITS_HXZ=FITS_HXZ, FITS_cond_HXZ=FITS_cond_HXZ,
+            FITS_OOSTan_HXZ=FITS_OOSTan_HXZ, FITS_Factors=FITS_Factors,
+            FITS_HXZLOC=FITS_HXZLOC, date=date, RET=RET)
 
 elif ObsChoice == 'BS':
     # 3.1 Load Barillas-Shanken data
@@ -651,8 +664,8 @@ elif ObsChoice == 'BS':
 
     # 3.3 Build factor arrays
     BS = np.column_stack((bsdata['Mkt_RF'].T[locBS], bsdata['SMB'].T[locBS],
-                          bsdata['UMD'].T[locBS], bsdata['HMLm'].T[locBS],
-                          bsdata['IA'].T[locBS], bsdata['ROE'].T[locBS]))
+                        bsdata['UMD'].T[locBS], bsdata['HMLm'].T[locBS],
+                        bsdata['IA'].T[locBS], bsdata['ROE'].T[locBS]))
 
     # 3.4 Select RET matrix
     if QXorR == 'R':
@@ -698,11 +711,14 @@ elif ObsChoice == 'BS':
                 if np.sum(~np.isnan(y)) < 60:
                     continue
                 else:
-                    model = LinearRegression(fit_intercept=False).fit(f, y)
+                    y_loc = ~np.isnan(y).ravel()
+                    y = y[y_loc, :]
+                    f_loc = f[y_loc, :]
+                    model = LinearRegression(fit_intercept=False).fit(f_loc, y)
                     b = model.coef_
-                    FITS_BS[n, t] = BS[t] @ b
-                    FITS_cond_BS[n, t] = np.mean(f, axis=0) @ b
-                    FITS_OOSTan_BS[t] = tanptfnext(f[:, :1], BS[t, :1])
+                    FITS_BS[n, t] = BS[t] @ b.ravel()
+                    FITS_cond_BS[n, t] = np.mean(f, axis=0) @ b.ravel()
+                    FITS_OOSTan_BS[t], _ = tanptfnext(f[:, :1], BS[t, :1].reshape(-1, 1))
         else:
             # Full-sample estimation
             # Skip if insufficient data and Rlogic is True
@@ -723,9 +739,9 @@ elif ObsChoice == 'BS':
             b = model.coef_  # [1x6]
 
             # Realized fits for valid time periods
-            FITS_BS[n, valid_t] = (BS[valid_t] @ b.T).flatten()  # [T_valid]
+            FITS_BS[n, :] = (BS @ b.T).flatten()
             # Predictive fits
-            FITS_cond_BS[n, valid_t] = (BS_mean[valid_t] @ b.T).flatten()  # [T_valid]
+            FITS_cond_BS[n, :] = (BS_mean @ b.T).flatten()
 
         if n % 1000 == 0:
             print(f'  processed asset {n} of {N}')
@@ -760,9 +776,9 @@ elif ObsChoice == 'BS':
         oosstr = ''
     suffix = '' # adjust if OOS spec
     np.savez(f'../IPCA_KELLY/Results_ObsFactReg_BS_{QXorR}{oosstr}_{dataname}{suffix}.npz',
-             FITS_BS=FITS_BS, FITS_cond_BS=FITS_cond_BS,
-             FITS_OOSTan_BS=FITS_OOSTan_BS, FITS_Factors=FITS_Factors,
-             FITS_BSLOC=FITS_BSLOC, date=date, RET=RET)
+            FITS_BS=FITS_BS, FITS_cond_BS=FITS_cond_BS,
+            FITS_OOSTan_BS=FITS_OOSTan_BS, FITS_Factors=FITS_Factors,
+            FITS_BSLOC=FITS_BSLOC, date=date, RET=RET)
 
 else:
     # Raise error for invalid ObsChoice
